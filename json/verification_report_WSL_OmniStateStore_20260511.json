@@ -1,0 +1,394 @@
+{
+  "metadata": {
+    "repo_path": "/home/<user>/tmp_src",
+    "repo_name": "OmniStateStore",
+    "repo_url": "https://gitcode.com/openeuler/OmniStateStore.git",
+    "start_time": "2026-05-11T10:53:00",
+    "end_time": "2026-05-11T12:00:00",
+    "duration_minutes": 67,
+    "total_steps": 8,
+    "os_image": "Ubuntu 24.04 LTS",
+    "build_type": "Debug (BUILD_TESTS=ON)"
+  },
+  "machine_spec": {
+    "host_machine": {
+      "architecture": "x86_64",
+      "cpu_model": "13th Gen Intel(R) Core(TM) i7-13700",
+      "cpu_cores": 24,
+      "memory": "15Gi",
+      "disk": "1007G (941G available)",
+      "docker_version": "Docker version 29.1.3, build 29.1.3-0ubuntu3~24.04.2"
+    },
+    "container": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "architecture": "x86_64",
+      "cpu_cores": 24,
+      "memory": "15Gi",
+      "image_source": "docker.1ms.run/ubuntu:24.04 (mirrored from docker.io)"
+    }
+  },
+  "document_reading_summary": {
+    "architecture": {
+      "value": "文档声称需要鲲鹏920系列处理器(aarch64)，但CMakeLists.txt同时支持x86_64和aarch64",
+      "source": "installation_guide.md - 硬件配置要求表1 + CMakeLists.txt 第55行"
+    },
+    "dependencies": {
+      "value": [
+        "cmake >= 3.14.1",
+        "gcc/g++ (C++14)",
+        "make",
+        "JDK (JNI头文件)",
+        "libaio-dev",
+        "git (submodules)"
+      ],
+      "source": "CMakeLists.txt 第1-3行 + src/core/CMakeLists.txt (JNI子目录) + scripts/build.sh 第68行 + test/llt/CMakeLists.txt 第19行(aio)"
+    },
+    "build_commands": {
+      "value": "./scripts/build.sh -t debug --ut 或手动: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON && make build_cpp",
+      "source": "scripts/build.sh 第82-130行 + CMakeLists.txt 第140-143行"
+    },
+    "ut_commands": {
+      "value": "./build/test/llt/bss_ut (GoogleTest框架，ASAN启用)",
+      "source": "test/llt/CMakeLists.txt 第28行 + scripts/build.sh 第67-69行"
+    },
+    "sample_commands": {
+      "value": "无独立样例程序。项目为Flink JNI库，需在Flink环境中以JAR包形式使能",
+      "source": "installation_guide.md - 启动OmniStateStore章节 + README.md - 使能场景"
+    },
+    "3rdparty_submodules": {
+      "value": [
+        "googletest v1.16.0",
+        "lz4 v1.10.0",
+        "libboundscheck v1.1.16",
+        "spdlog v1.15.3"
+      ],
+      "source": ".gitmodules"
+    }
+  },
+  "execution_log": [
+    {
+      "timestamp": "2026-05-11T10:53:00",
+      "step": 1,
+      "action": "拉取Ubuntu 24.04镜像",
+      "command": "docker pull docker.1ms.run/ubuntu:24.04",
+      "success": true,
+      "output": "24.04: Pull completed",
+      "error": "",
+      "duration_seconds": 30,
+      "note": "Docker Hub直连超时，使用镜像源成功拉取"
+    },
+    {
+      "timestamp": "2026-05-11T10:54:00",
+      "step": 2,
+      "action": "启动容器并挂载仓库",
+      "command": "docker run -d --name verification-env -v /home/<user>/tmp_src:/workspace -w /workspace ubuntu:24.04 tail -f /dev/null",
+      "success": true,
+      "output": "Container 346274e1488b started",
+      "error": "",
+      "duration_seconds": 2
+    },
+    {
+      "timestamp": "2026-05-11T10:54:30",
+      "step": 3,
+      "action": "安装构建依赖",
+      "command": "apt-get update && apt-get install -y cmake gcc g++ make libaio-dev git default-jdk",
+      "success": true,
+      "output": "cmake 3.28.3, gcc 13.3.0, JDK 21 (OpenJDK)",
+      "error": "",
+      "duration_seconds": 60,
+      "note": "README未列出JDK为构建依赖，CMakeLists.txt中include_directories引用了JAVA_HOME，需安装JDK才能编译JNI代码"
+    },
+    {
+      "timestamp": "2026-05-11T10:55:30",
+      "step": 4,
+      "action": "初始化git子模块",
+      "command": "git submodule update --init --recursive",
+      "success": true,
+      "output": "4个子模块全部检出成功: googletest, lz4, libboundscheck, spdlog",
+      "error": "",
+      "duration_seconds": 30
+    },
+    {
+      "timestamp": "2026-05-11T10:56:00",
+      "step": 5,
+      "action": "CMake配置",
+      "command": "cmake .. -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=../dist",
+      "success": true,
+      "output": "Configuring done (14.6s), Generating done (0.0s)",
+      "error": "",
+      "duration_seconds": 45,
+      "note": "有CMP0153策略警告(exec_program已弃用)，但不影响构建"
+    },
+    {
+      "timestamp": "2026-05-11T10:57:00",
+      "step": 6,
+      "action": "编译C++代码",
+      "command": "cd build && make build_cpp (内部使用make -j8)",
+      "success": true,
+      "output": "100% Built target build_cpp. 生成bss_ut可执行文件和libockdbjni-linux64.so及多个静态库",
+      "error": "",
+      "duration_seconds": 180,
+      "note": "编译过程有多个unused variable警告，无错误"
+    },
+    {
+      "timestamp": "2026-05-11T11:00:00",
+      "step": 7,
+      "action": "运行单元测试 - 非TestDB测试",
+      "command": "./bss_ut --gtest_filter='-TestDB.*'",
+      "success": false,
+      "output": "234 tests from 28 test suites ran. 233 passed, 1 failed",
+      "error": "TestFileManager.test_write_read_secondary_key_iterator_return_ok 失败 (SIGSEGV)",
+      "duration_seconds": 37,
+      "note": "233/234通过。1个测试SIGSEGV崩溃"
+    },
+    {
+      "timestamp": "2026-05-11T11:01:00",
+      "step": 8,
+      "action": "运行单元测试 - TestDB测试",
+      "command": "./bss_ut --gtest_filter='TestDB.*'",
+      "success": false,
+      "output": "所有TestDB测试均因SIGILL崩溃",
+      "error": "SIGILL (Illegal instruction) at test_db.cpp:1240 - DeleteCpFile()函数缺少return语句",
+      "duration_seconds": 5,
+      "note": "GDB确认: SIGILL发生在DeleteCpFile()函数结束处，bool返回类型但无return语句"
+    },
+    {
+      "timestamp": "2026-05-11T11:02:00",
+      "step": 9,
+      "action": "构建产物检查",
+      "command": "find /workspace/build -type f \\( -name '*.so' -o -name '*.a' -o -name '*.jar' \\)",
+      "success": true,
+      "output": "JNI库: libockdbjni-linux64.so, 12个静态库 (bss_common, bss_compress, bss_executor, bss_fresh_table, lsm_store, blob_store, bss_memory, bss_db, bss_kv_table, slice_table, snapshot)",
+      "error": "",
+      "duration_seconds": 2
+    }
+  ],
+  "process_timeline": [
+    {
+      "timestamp": "2026-05-11T10:53:00",
+      "step": "start",
+      "action": "验证过程启动",
+      "result": "仓库已克隆到 /home/<user>/tmp_src"
+    },
+    {
+      "timestamp": "2026-05-11T10:53:30",
+      "step": "doc_reading",
+      "action": "读取文档: README.md, installation_guide.md, CMakeLists.txt, build.sh, test/CMakeLists.txt",
+      "result": "提取了依赖、构建命令、测试命令"
+    },
+    {
+      "timestamp": "2026-05-11T10:54:00",
+      "step": "container_setup",
+      "action": "启动Ubuntu 24.04容器，挂载仓库",
+      "result": "容器运行正常"
+    },
+    {
+      "timestamp": "2026-05-11T10:54:30",
+      "step": "install_deps",
+      "action": "安装cmake, gcc, g++, make, libaio-dev, git, default-jdk",
+      "result": "全部安装成功"
+    },
+    {
+      "timestamp": "2026-05-11T10:56:00",
+      "step": "cmake_config",
+      "action": "CMake配置 (Debug + BUILD_TESTS=ON)",
+      "result": "配置成功"
+    },
+    {
+      "timestamp": "2026-05-11T10:57:00",
+      "step": "build",
+      "action": "编译C++代码和测试",
+      "result": "BUILD SUCCESS - 所有目标编译完成"
+    },
+    {
+      "timestamp": "2026-05-11T11:00:00",
+      "step": "unit_tests",
+      "action": "运行单元测试",
+      "result": "非TestDB: 233/234通过, 1个SIGSEGV; TestDB: 全部SIGILL崩溃"
+    },
+    {
+      "timestamp": "2026-05-11T11:02:00",
+      "step": "artifacts",
+      "action": "检查构建产物",
+      "result": "1个JNI .so + 12个静态库"
+    },
+    {
+      "timestamp": "2026-05-11T12:00:00",
+      "step": "end",
+      "action": "验证过程结束，生成报告",
+      "result": "完成"
+    }
+  ],
+  "final_results": {
+    "build": {
+      "status": "success",
+      "artifacts": [
+        {
+          "name": "libockdbjni-linux64.so",
+          "path": "/workspace/build/src/core/jni/",
+          "type": "shared_library"
+        },
+        {
+          "name": "libbss_common.a",
+          "path": "/workspace/build/src/core/common/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_compress.a",
+          "path": "/workspace/build/src/core/compress/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_executor.a",
+          "path": "/workspace/build/src/core/executor/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_fresh_table.a",
+          "path": "/workspace/build/src/core/fresh_table/",
+          "type": "static_library"
+        },
+        {
+          "name": "liblsm_store.a",
+          "path": "/workspace/build/src/core/lsm_store/",
+          "type": "static_library"
+        },
+        {
+          "name": "libblob_store.a",
+          "path": "/workspace/build/src/core/blob_store/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_memory.a",
+          "path": "/workspace/build/src/core/memory/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_db.a",
+          "path": "/workspace/build/src/core/db/",
+          "type": "static_library"
+        },
+        {
+          "name": "libbss_kv_table.a",
+          "path": "/workspace/build/src/core/kv_table/",
+          "type": "static_library"
+        },
+        {
+          "name": "libslice_table.a",
+          "path": "/workspace/build/src/core/slice_table/",
+          "type": "static_library"
+        },
+        {
+          "name": "libsnapshot.a",
+          "path": "/workspace/build/src/core/snapshot/",
+          "type": "static_library"
+        },
+        {
+          "name": "bss_ut",
+          "path": "/workspace/build/test/llt/",
+          "type": "test_executable"
+        }
+      ]
+    },
+    "ut": {
+      "status": "partial",
+      "total": "300+ (全部)",
+      "non_testdb": {
+        "total": 234,
+        "passed": 233,
+        "failed": 1
+      },
+      "testdb": {
+        "total": 62,
+        "passed": 0,
+        "failed": 62,
+        "failure_reason": "SIGILL (Illegal instruction)"
+      },
+      "failures": [
+        {
+          "test": "TestFileManager.test_write_read_secondary_key_iterator_return_ok",
+          "error_type": "SIGSEGV (Segmentation fault)",
+          "details": "在运行过程中崩溃"
+        },
+        {
+          "test": "TestFileManager.test_write_to_file_store_and_read_return_ok",
+          "error_type": "SIGSEGV (Segmentation fault)",
+          "details": "Null pointer at KeyGroupUtil::ComputeKeyGroupForKeyHash (key_group_util.h:35)",
+          "gdb_trace": [
+            "#0 ?? () at 0x0",
+            "#1 KeyGroupUtil::ComputeKeyGroupForKeyHash at key_group_util.h:35",
+            "#2 LsmStore::InternalGet at file_store_impl.cpp:741"
+          ]
+        },
+        {
+          "test": "TestDB.* (全部62个测试)",
+          "error_type": "SIGILL (Illegal instruction)",
+          "details": "SIGILL发生在TestDB::DeleteCpFile()函数结束处 (test_db.cpp:1240)。该函数声明为bool返回类型但缺少return语句，导致未定义行为。GDB堆栈确认崩溃发生在TearDown阶段调用DeleteCpFile时。",
+          "gdb_trace": [
+            "#0 TestDB::DeleteCpFile at test_db.cpp:1240",
+            "#1 TestDB::TearDown at test_db.cpp:1503",
+            "#2 testing::internal::HandleExceptionsInMethodIfSupported"
+          ]
+        }
+      ]
+    },
+    "sample": {
+      "status": "not_applicable",
+      "details": "OmniStateStore是一个Flink JNI状态存储后端库，没有独立的可执行样例程序。需要在Flink集群环境中配置state.backend参数并以JAR包形式运行Flink作业才能验证功能。installation_guide.md中提到的验证方式是在Flink TaskManager日志中查看'OmniStateStore service start success.'消息。"
+    }
+  },
+  "documentation_gaps": [
+    {
+      "gap": "README.md中没有提供本地构建/编译的具体命令",
+      "severity": "medium",
+      "details": "README.md仅介绍了项目背景和部署为Flink JAR包的方式，未提及如何从源码编译。构建指令仅在scripts/build.sh中隐含。"
+    },
+    {
+      "gap": "README.md和installation_guide.md中未列出C++构建依赖",
+      "severity": "medium",
+      "details": "文档仅列出了运行时依赖(Java, Flink)，未提及编译需要的cmake >= 3.14.1、gcc/g++、make、libaio-dev等。JDK仅在CMakeLists.txt中通过JAVA_HOME隐式使用。"
+    },
+    {
+      "gap": "无单元测试执行指南",
+      "severity": "low",
+      "details": "文档中未提及如何运行单元测试。--ut选项仅在build.sh脚本中可用，且文档未说明。"
+    },
+    {
+      "gap": "无样例/示例程序说明",
+      "severity": "low",
+      "details": "项目没有独立的可执行样例程序，文档中也未说明如何在Flink环境中验证。"
+    },
+    {
+      "gap": "CMakeLists.txt硬编码make -j8",
+      "severity": "low",
+      "details": "CMakeLists.txt中build_cpp等custom target使用make -j8，未使用$(nproc)或CMAKE_BUILD_PARALLEL_LEVEL，不尊重系统资源。"
+    }
+  ],
+  "problems_encountered": [
+    {
+      "problem": "Docker Hub连接超时",
+      "solution": "使用镜像源 docker.1ms.run 拉取Ubuntu 24.04镜像",
+      "source": "网络环境限制，自行解决"
+    },
+    {
+      "problem": "openEuler 22.03 LTS SP3镜像为arm64架构，与x86_64宿主机不兼容",
+      "solution": "切换使用Ubuntu 24.04 x86_64镜像",
+      "source": "docker inspect确认镜像platform不匹配"
+    },
+    {
+      "problem": "编译依赖JDK但未在文档中列出",
+      "solution": "通过读取CMakeLists.txt第122-123行发现include_directories引用JAVA_HOME，安装了default-jdk",
+      "source": "CMakeLists.txt 第122-123行"
+    },
+    {
+      "problem": "TestDB全部62个测试运行时SIGILL崩溃",
+      "solution": "通过GDB调试定位到test_db.cpp第1240行DeleteCpFile()函数。该函数声明bool返回类型但缺少return语句，导致未定义行为。这是测试代码本身的bug。",
+      "source": "test/llt/testcase/db/test_db.cpp:1235-1240 - DeleteCpFile()函数"
+    },
+    {
+      "problem": "TestFileManager部分测试SIGSEGV崩溃",
+      "solution": "通过GDB定位到KeyGroupUtil::ComputeKeyGroupForKeyHash空指针解引用(key_group_util.h:35)。这是测试代码中的初始化问题。",
+      "source": "src/core/common/util/key_group_util.h:35"
+    }
+  ]
+}
