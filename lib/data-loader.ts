@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import { RepoSummary, RepoDetail, Attempt, BuildResult, UtStats, TimelinePhase, DocumentationChecklist, DependencyInfo, HardwareConfig, ImageSelection, SummaryStats, Artifact, Dependency, MissingDependency, ResultStatus } from './types'
-import { deriveRepoIdentity } from './utils'
+import { deriveRepoIdentity, normalizeRepoName } from './utils'
 
 const JSON_DIR = path.join(process.cwd(), 'json')
 
@@ -15,7 +15,8 @@ export function getAllRepoNames(): string[] {
         .replace('.json', '')
         .replace(/_202605\d{2}$/, '')  // 移除日期后缀
         .replace(/_202605\d{2}_final$/, '')  // 移除日期+final后缀
-      return name
+      // 规范化名称，去掉 WSL_/Ubuntu_ 前缀，防止同一仓库出现多个条目
+      return normalizeRepoName(name)
     })
   return [...new Set(names)].sort()
 }
