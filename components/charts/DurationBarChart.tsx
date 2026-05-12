@@ -40,18 +40,17 @@ export function DurationBarChart({ repos, topCount = 10 }: DurationBarChartProps
   }
 
   return (
-    <ResponsiveContainer width="100%" height={320}>
-      <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24 }}>
+    <ResponsiveContainer width="100%" height={Math.max(320, data.length * 40)}>
+      <BarChart data={data} layout="vertical" margin={{ left: 4, right: 24, top: 4, bottom: 4 }}>
         <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
         <XAxis
           type="number"
-          label={{ value: '分钟', position: 'insideBottom', offset: -5 }}
-          tickFormatter={(v) => `${v}`}
+          tickFormatter={(v) => `${v}m`}
         />
         <YAxis
           type="category"
           dataKey="name"
-          width={120}
+          width={130}
           tick={{ fontSize: 12 }}
         />
         <Tooltip

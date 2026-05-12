@@ -24,18 +24,18 @@ export function ResultPieChart({ success, failed, partial }: ResultPieChartProps
   }
 
   return (
-    <ResponsiveContainer width="100%" height={250}>
+    <ResponsiveContainer width="100%" height={280}>
       <PieChart>
         <Pie
           data={data}
           cx="50%"
           cy="50%"
-          innerRadius={60}
-          outerRadius={90}
+          innerRadius={55}
+          outerRadius={85}
           paddingAngle={2}
           dataKey="value"
           label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          labelLine={false}
+          labelLine
         >
           {data.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={entry.color} />
