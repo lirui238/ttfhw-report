@@ -39,7 +39,9 @@ export function FilterBar({ repos, onFilter }: FilterBarProps) {
 
     // 分类过滤
     if (categoryFilter) {
-      result = result.filter(r => r.category === categoryFilter)
+      result = result.filter(r =>
+        categoryFilter === 'Other' ? !r.category : r.category === categoryFilter
+      )
     }
 
     // 排序
