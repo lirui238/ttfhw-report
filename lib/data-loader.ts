@@ -153,17 +153,29 @@ function convertReport511LegacyFormat(data: any, repoName?: string): any {
     duration_seconds: finalResults.build?.duration_seconds
   }
 
+  // 聚合 UT 数据（支持多组件结构）
+  const utRaw = finalResults.ut || {}
+  const utComponents = utRaw.components || []
+  const utAgg = utComponents.length > 0
+    ? {
+        total: utComponents.reduce((sum: number, c: any) => sum + (c.total || 0), 0),
+        passed: utComponents.reduce((sum: number, c: any) => sum + (c.passed || 0), 0),
+        failed: utComponents.reduce((sum: number, c: any) => sum + (c.failed || 0), 0),
+      }
+    : { total: utRaw.total, passed: utRaw.passed, failed: utRaw.failed }
+
   const utStats = {
-    ut_status: normalizeStatusString(finalResults.ut?.status),
-    ut_skipped_reason: finalResults.ut?.reason || '',
-    ut_total_count: finalResults.ut?.total,
-    ut_passed_count: finalResults.ut?.passed,
-    ut_failed_count: finalResults.ut?.failed,
-    total_tests: finalResults.ut?.total,
-    passed: finalResults.ut?.passed,
-    failed: finalResults.ut?.failed,
-    ut_duration_seconds: finalResults.ut?.duration_seconds,
-    duration_seconds: finalResults.ut?.duration_seconds
+    ut_status: normalizeStatusString(utRaw.status),
+    ut_skipped_reason: utRaw.reason || utRaw.summary || '',
+    ut_total_count: utAgg.total,
+    ut_passed_count: utAgg.passed,
+    ut_failed_count: utAgg.failed,
+    total_tests: utAgg.total,
+    passed: utAgg.passed,
+    failed: utAgg.failed,
+    ut_duration_seconds: utRaw.duration_seconds,
+    duration_seconds: utRaw.duration_seconds,
+    ut_suite_details: utComponents.length > 0 ? utComponents.map((c: any) => `${c.component}: ${c.passed || 0}/${c.total || 0}`) : undefined,
   }
 
   // 转换 document_reading_summary -> documentation_checklist
