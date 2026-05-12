@@ -21,7 +21,7 @@ export function StatsOverview({ stats }: StatsOverviewProps) {
         value={
           <>
             <span>{stats.ttfhwPassRate}%</span>
-            <span className="text-xs text-slate-500 font-normal block">(通过{stats.success}，失败{stats.failed})</span>
+            <span className="text-xs text-slate-500 font-normal block">(通过{stats.success}，部分通过{stats.partial}，失败{stats.failed})</span>
           </>
         }
         icon={<TrendingUp className="w-8 h-8 text-success" />}
