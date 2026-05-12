@@ -735,6 +735,14 @@ function normalizeToDetail(name: string, data: any): RepoDetail {
 }
 
 function extractTimeline(data: any): TimelinePhase[] {
+  // 优先从 process_timeline 中提取带时间戳的阶段（更丰富）
+  const original = data?.__original || data
+  const procTimeline = original?.process_timeline || []
+  if (procTimeline.length >= 2) {
+    return buildTimelineFromProcessEntries(procTimeline)
+  }
+
+  // 回退：从 ttfhw_timeline 的命名 duration 键提取
   const timeline = data?.ttfhw_timeline
   if (!timeline) return []
 
@@ -759,11 +767,7 @@ function extractTimeline(data: any): TimelinePhase[] {
   for (const { key, name } of phaseNames) {
     const duration = getPhaseDuration(key, data)
     if (duration && typeof duration === 'number' && duration > 0) {
-      phases.push({
-        phase: name,
-        durationSeconds: duration,
-        status: 'success',
-      })
+      phases.push({ phase: name, durationSeconds: duration, status: 'success' })
     }
   }
 
@@ -772,10 +776,41 @@ function extractTimeline(data: any): TimelinePhase[] {
   const unclassifiedDuration = totalDuration - explainedDuration
 
   if (unclassifiedDuration > 1) {
+    phases.push({ phase: '未归类耗时', durationSeconds: unclassifiedDuration, status: 'unknown' })
+  }
+
+  return phases
+}
+
+// 从 process_timeline 条目构建带时长的时间线
+function buildTimelineFromProcessEntries(entries: any[]): TimelinePhase[] {
+  // 按时间戳排序，计算相邻条目间的时长
+  const sorted = entries
+    .map((e: any) => ({ ...e, _ts: Date.parse(e.timestamp || '') }))
+    .filter((e: any) => Number.isFinite(e._ts))
+    .sort((a: any, b: any) => a._ts - b._ts)
+
+  if (sorted.length < 2) return []
+
+  const phases: TimelinePhase[] = []
+  // 第一步到最后一个有效步骤
+  const endIdx = sorted.length - 1
+
+  for (let i = 0; i < sorted.length; i++) {
+    const entry = sorted[i]
+    const nextTime = i + 1 <= endIdx ? sorted[i + 1]?._ts : undefined
+    const duration = nextTime && nextTime > entry._ts
+      ? Math.round((nextTime - entry._ts) / 1000)
+      : 0
+
+    // 跳过 start / cleanup / report 这种无实际耗时的标记节点
+    const step = (entry.step || entry.action || '').toLowerCase()
+    if (duration === 0 && ['start', 'cleanup', 'report', 'end'].includes(entry.step)) continue
+
     phases.push({
-      phase: '未归类耗时',
-      durationSeconds: unclassifiedDuration,
-      status: 'unknown',
+      phase: entry.action || entry.step || 'unknown',
+      durationSeconds: duration,
+      status: entry.result || 'unknown',
     })
   }
 

@@ -156,13 +156,14 @@ export default async function RepoDetailPage({ params }: PageProps) {
         </Card>
       )}
 
-      {/* 过程时间线 */}
-      {processTimeline.length > 0 && (
-        <ProcessTimelineCard items={processTimeline} />
+      {/* 阶段时间线 (优先显示带时长计算的阶段) */}
+      {detail.timeline.length > 0 && (
+        <PhaseTimelineCard items={detail.timeline} />
       )}
 
-      {processTimeline.length === 0 && detail.timeline.length > 0 && (
-        <PhaseTimelineCard items={detail.timeline} />
+      {/* 过程时间线 (原始步骤日志) */}
+      {processTimeline.length > 0 && (
+        <ProcessTimelineCard items={processTimeline} />
       )}
 
       {/* UT/ST 分析 */}
