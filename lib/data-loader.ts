@@ -485,9 +485,12 @@ function buildOpenEulerTimeline(data: any): any[] {
 function mapOpenEulerStatus(status: string | undefined): string {
   if (!status) return 'unknown'
   const s = status.toLowerCase()
-  if (s.includes('成功') || s.includes('success') || s.includes('通过')) return 'success'
-  if (s.includes('失败') || s.includes('fail') || s.includes('error')) return 'failed'
+  if (s.includes('已验证') || s.includes('verified')) return 'success'
   if (s.includes('部分') || s.includes('partial')) return 'partial_success'
+  if (s.includes('失败') || s.includes('fail') || s.includes('error')) return 'failed'
+  if (s.includes('成功') || s.includes('success') || s.includes('通过')) return 'success'
+  if (s.includes('block')) return 'failed'
+  if (s.includes('skip') || s.includes('not')) return 'not_run'
   return 'unknown'
 }
 
@@ -522,10 +525,12 @@ function parseDurationString(dur: string | undefined): number | undefined {
 function normalizeStatusString(status: any): string {
   if (!status) return 'unknown'
   const s = String(status).toLowerCase()
-  if (s.includes('success') && !s.includes('partial')) return 'success'
+  if (s.includes('success') && s.includes('fail')) return 'partial_success'
   if (s.includes('partial')) return 'partial_success'
+  if (s.includes('success')) return 'success'
   if (s.includes('block')) return 'failed'
   if (s.includes('fail') || s.includes('unsuccessful')) return 'failed'
+  if (s.includes('incomplete')) return 'partial_success'
   if (s.includes('skip') || s.includes('not')) return 'not_run'
   return 'unknown'
 }
