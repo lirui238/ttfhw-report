@@ -154,16 +154,9 @@ function convertReport511LegacyFormat(data: any, repoName?: string): any {
     duration_seconds: finalResults.build?.duration_seconds
   }
 
-  // 聚合 UT 数据（支持多组件结构）
+  // 聚合 UT 数据（支持多组件 / 命名子对象结构）
   const utRaw = finalResults.ut || {}
-  const utComponents = utRaw.components || []
-  const utAgg = utComponents.length > 0
-    ? {
-        total: utComponents.reduce((sum: number, c: any) => sum + (c.total || 0), 0),
-        passed: utComponents.reduce((sum: number, c: any) => sum + (c.passed || 0), 0),
-        failed: utComponents.reduce((sum: number, c: any) => sum + (c.failed || 0), 0),
-      }
-    : { total: utRaw.total, passed: utRaw.passed, failed: utRaw.failed }
+  const utAgg = aggregateUtStats(utRaw)
 
   const utStats = {
     ut_status: normalizeStatusString(utRaw.status),
@@ -176,7 +169,7 @@ function convertReport511LegacyFormat(data: any, repoName?: string): any {
     failed: utAgg.failed,
     ut_duration_seconds: utRaw.duration_seconds,
     duration_seconds: utRaw.duration_seconds,
-    ut_suite_details: utComponents.length > 0 ? utComponents.map((c: any) => `${c.component}: ${c.passed || 0}/${c.total || 0}`) : undefined,
+    ut_suite_details: utAgg.suites,
   }
 
   // 转换 document_reading_summary -> documentation_checklist
@@ -539,6 +532,49 @@ function parseDurationString(dur: string | undefined): number | undefined {
   const secMatch = dur.match(/(\d+)\s*s/)
   if (secMatch) total += parseInt(secMatch[1])
   return total > 0 ? total : undefined
+}
+
+// 通用 UT 统计聚合：处理 flat total/passed/failed、components[]、命名子对象三种结构
+function aggregateUtStats(utRaw: any): { total?: number; passed?: number; failed?: number; suites?: string[] } {
+  const KNOWN_META = new Set(['status', 'reason', 'note', 'summary', 'duration_seconds',
+    'failures', 'failure_reason', 'total', 'passed', 'failed', 'pass_rate',
+    'skipped', 'skipped_list', 'test_cases', 'test_details', 'test_modules',
+    'test_categories', 'test_duration_ms', 'build_mode', 'coverage', 'coverage_note',
+    'notes', 'errors', 'execution_time_seconds', 'blocked', 'blocked_tests',
+    'blocked_reason', 'passed_tests', 'testing_tools_available',
+    'build_duration_seconds', 'backend', 'pytest_version'])
+
+  // 1. components[] 数组 (ubs-virt)
+  if (Array.isArray(utRaw.components)) {
+    const comps = utRaw.components.filter((c: any) => c && typeof c === 'object')
+    return {
+      total: comps.reduce((s: number, c: any) => s + (c.total || 0), 0),
+      passed: comps.reduce((s: number, c: any) => s + (c.passed || 0), 0),
+      failed: comps.reduce((s: number, c: any) => s + (c.failed || 0), 0),
+      suites: comps.map((c: any) => `${c.component || c.name || '?'}: ${c.passed || 0}/${c.total || 0}`),
+    }
+  }
+
+  // 2. 命名子对象：检测任何值含 {total, passed, failed} 的键 (ubturbo, MindIE-Motor, etc.)
+  const subKeys = Object.keys(utRaw).filter(k =>
+    !KNOWN_META.has(k) && typeof utRaw[k] === 'object' && utRaw[k] !== null &&
+    !Array.isArray(utRaw[k]) && ('total' in utRaw[k] || 'passed' in utRaw[k] || 'failed' in utRaw[k])
+  )
+  if (subKeys.length > 0) {
+    const subs = subKeys.map(k => utRaw[k])
+    return {
+      total: subs.reduce((s: number, c: any) => s + (c.total || 0), 0),
+      passed: subs.reduce((s: number, c: any) => s + (c.passed || 0), 0),
+      failed: subs.reduce((s: number, c: any) => s + (c.failed || 0), 0),
+      suites: subKeys.map((k, i) => `${k}: ${subs[i]?.passed || 0}/${subs[i]?.total || 0}`),
+    }
+  }
+
+  // 3. flat 字段 (最常见)
+  const total = typeof utRaw.total === 'number' ? utRaw.total : undefined
+  const passed = typeof utRaw.passed === 'number' ? utRaw.passed : undefined
+  const failed = typeof utRaw.failed === 'number' ? utRaw.failed : undefined
+  return { total, passed, failed }
 }
 
 function normalizeStatusString(status: any): string {
