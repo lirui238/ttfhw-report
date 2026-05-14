@@ -103,6 +103,7 @@ const REPO_COMMUNITY_MAP: Record<string, string> = {
   'a-tune': 'openEuler',
   'stratovirt': 'openEuler',
   'bishengjdk-8': 'openEuler',
+  'openeuler': 'openEuler',
 
   // ubsCore
   'memcache': 'UBSCore',

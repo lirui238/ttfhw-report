@@ -15,8 +15,7 @@ export function getAllRepoNames(): string[] {
     const rawName = dirent.name
       .replace('verification_report_', '')
       .replace('.json', '')
-      .replace(/_202605\d{2}$/, '')
-      .replace(/_202605\d{2}_final$/, '')
+      .replace(/_\d{8}(_final)?$/, '')
     // 用归一化后的 key 去重，但保留原始文件名用于文件查找
     const key = normalizeRepoName(rawName).toLowerCase().replace(/[-_]/g, '-')
     if (!seen.has(key)) {
@@ -70,35 +69,63 @@ export function getRepoDetail(repoName: string): RepoDetail | null {
 }
 
 function loadReportData(repoName: string): any {
-  // 尝试多种文件名格式（优先更新日期，优先带 WSL/Ubuntu 前缀）
-  const possibleNames = [
-    `verification_report_WSL_${repoName}_20260512.json`,
-    `verification_report_WSL_${repoName}_20260511_final.json`,
-    `verification_report_WSL_${repoName}_20260511.json`,
-    `verification_report_WSL_${repoName}_20260510.json`,
-    `verification_report_Ubuntu_${repoName}_20260512.json`,
-    `verification_report_Ubuntu_${repoName}_20260511_final.json`,
-    `verification_report_Ubuntu_${repoName}_20260511.json`,
-    `verification_report_Ubuntu_${repoName}_20260510.json`,
-    `verification_report_${repoName}_20260512.json`,
-    `verification_report_${repoName}_20260511_final.json`,
-    `verification_report_${repoName}_20260511.json`,
-    `verification_report_${repoName}_20260510.json`,
-    `verification_report_${repoName}.json`,
-  ]
+  const candidates = generateCandidateNames(repoName)
 
-  for (const filename of possibleNames) {
+  for (const filename of candidates) {
     const reportPath = path.join(JSON_DIR, filename)
     if (fs.existsSync(reportPath)) {
       const rawData = fs.readFileSync(reportPath, 'utf-8')
       const data = JSON.parse(rawData)
-      // 转换 report-511 格式到标准格式，传入 repoName 作为 fallback
       return convertReport511Format(data, repoName)
     }
   }
 
+  const fallback = findLatestFile(repoName)
+  if (fallback) {
+    const rawData = fs.readFileSync(fallback, 'utf-8')
+    const data = JSON.parse(rawData)
+    return convertReport511Format(data, repoName)
+  }
+
   throw new Error(`Report not found for ${repoName}`)
 }
+
+function generateCandidateNames(repoName: string): string[] {
+  const names: string[] = []
+  const prefixes = ['WSL_', 'Ubuntu_', '']
+  const today = new Date()
+  const start = new Date(2026, 4, 10)
+  for (let d = new Date(today); d >= start; d.setDate(d.getDate() - 1)) {
+    const dateStr = d.toISOString().slice(0, 10).replace(/-/g, '')
+    for (const prefix of prefixes) {
+      names.push(`verification_report_${prefix}${repoName}_${dateStr}.json`)
+      names.push(`verification_report_${prefix}${repoName}_${dateStr}_final.json`)
+    }
+  }
+  names.push(`verification_report_${repoName}.json`)
+  return names
+}
+
+function findLatestFile(repoName: string): string | null {
+  let bestMatch: string | null = null
+  let bestDate = ''
+  const dateRe = /_(\d{8})(_final)?\.json$/
+  for (const dirent of fs.readdirSync(JSON_DIR, { withFileTypes: true })) {
+    if (!dirent.isFile() || !dirent.name.endsWith('.json')) continue
+    const core = dirent.name.replace('verification_report_', '')
+    const dm = core.match(dateRe)
+    const namePart = dm ? core.slice(0, dm.index) : core.replace('.json', '')
+    if (namePart === repoName) {
+      const fileDate = dm ? dm[1] : ''
+      if (!bestMatch || fileDate > bestDate) {
+        bestMatch = path.join(JSON_DIR, dirent.name)
+        bestDate = fileDate
+      }
+    }
+  }
+  return bestMatch
+}
+
 
 // 转换 report-511 JSON 格式到 verify 项目期望的格式
 function convertReport511Format(data: any, repoName?: string): any {
@@ -804,7 +831,7 @@ function buildTimelineFromProcessEntries(entries: any[]): TimelinePhase[] {
       : 0
 
     // 跳过 start / cleanup / report 这种无实际耗时的标记节点
-    const step = (entry.step || entry.action || '').toLowerCase()
+    const step = String(entry.step || entry.action || '').toLowerCase()
     if (duration === 0 && ['start', 'cleanup', 'report', 'end'].includes(entry.step)) continue
 
     phases.push({
