@@ -43,7 +43,7 @@ export function RepoTable({ repos }: RepoTableProps) {
               <td className="px-3 py-3 xl:px-4">
                 <div className="flex items-center gap-2 min-w-0">
                   <a
-                    href={`/${repo.name}`}
+                    href={`/ttfhw-report/${repo.name}`}
                     className="font-medium text-blue-700 break-words hover:text-blue-900"
                   >
                     {repo.displayName}
