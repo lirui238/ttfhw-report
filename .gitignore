@@ -33,8 +33,5 @@ pnpm-debug.log*
 # local/generated verification workspace
 tmp_src/
 
-# local agent workspace
-.claude/
-
 # archived/unused files
 tmp/
